@@ -1,0 +1,12 @@
+# `tool/setup.sh` bunları flutter create ile üretir
+/android/
+/ios/
+/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.metadata
+pubspec.lock
+*.iml
+.idea/

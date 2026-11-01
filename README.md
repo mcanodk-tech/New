@@ -39,7 +39,14 @@ Python 3.9+; dış bağımlılık yok.
 pip install .          # ya da doğrudan: python -m ayakizi ...
 ```
 
-## Uygulama
+## Mobil uygulama
+
+`mobile/` klasöründe Flutter ile yazılmış Android/iOS uygulaması var. Android'de
+SMS'ler yedek dosyası gerekmeden doğrudan telefondan okunur. Hazır APK'yı
+GitHub'da **Actions → mobile → Artifacts → `ayakizi-apk`** altından
+indirebilirsiniz. Ayrıntılar: [`mobile/README.md`](mobile/README.md).
+
+## Masaüstü uygulama (tarayıcı)
 
 ```bash
 pip install .

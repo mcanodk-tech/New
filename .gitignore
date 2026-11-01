@@ -2,3 +2,4 @@ ayakizi-rapor/
 __pycache__/
 *.egg-info/
 *.xml
+!mobile/overrides/**/*.xml
