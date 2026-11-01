@@ -2,25 +2,22 @@
 
     ayakizi scan --imap ben@gmail.com --sms sms-yedek.xml --phone +905551112233 --hibp
     ayakizi password
+    ayakizi app          # tarayıcıda açılan uygulama
 """
 
 from __future__ import annotations
 
 import argparse
 import getpass
-import imaplib
 import os
 import sys
-import xml.etree.ElementTree as ET
 from datetime import date
 from pathlib import Path
 
 from . import __version__
-from .hibp import HIBPError, breached_account, pwned_password_count
-from .inbox import guess_imap_host, scan_mailbox
-from .models import Event, build_inventory
+from .core import ImapAccount, SmsBackup, run_scan
+from .hibp import HIBPError, pwned_password_count
 from .report import write_reports
-from .sms import scan_sms_backup
 from .verify import SmtpConfig, VerificationError, verify_email
 
 
@@ -52,29 +49,14 @@ def cmd_scan(args: argparse.Namespace) -> int:
         return 2
 
     since = date.fromisoformat(args.since) if args.since else None
-    events: list[Event] = []
-    verified_emails: list[str] = []
-    scanned: list[str] = []
 
+    imap_accounts = []
     for address in args.imap:
-        host = args.imap_host or guess_imap_host(address)
         env_pw = os.environ.get("AYAKIZI_IMAP_PASSWORD") if len(args.imap) == 1 else None
         password = env_pw or getpass.getpass(f"{address} için IMAP / uygulama şifresi: ")
-        _log(f"[e-posta] {address} @ {host}")
-        try:
-            evs = scan_mailbox(address, password, host=host, folders=args.folder or None,
-                               since=since, progress=_log)
-        except imaplib.IMAP4.error as e:
-            _log(f"  ! giriş başarısız: {e}. Gmail/Outlook için 'uygulama şifresi' gerekir.")
-            continue
-        except OSError as e:
-            _log(f"  ! bağlantı hatası ({host}): {e}")
-            continue
-        # IMAP girişi başarılı -> bu adresin sahibi olduğunuz kanıtlandı.
-        verified_emails.append(address.lower())
-        scanned.append(address)
-        events.extend(evs)
+        imap_accounts.append(ImapAccount(address, password, args.imap_host, args.folder or None))
 
+    otp_verified: list[str] = []
     if args.verify_email:
         try:
             smtp = SmtpConfig.from_env()
@@ -83,7 +65,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
             smtp = None
         for address in args.verify_email if smtp else []:
             address = address.strip().lower()
-            if address in verified_emails:
+            if address in otp_verified:
                 continue
             _log(f"[otp] {address} adresine kod gönderiliyor ({smtp.host})")
             try:
@@ -93,35 +75,26 @@ def cmd_scan(args: argparse.Namespace) -> int:
                 continue
             if ok:
                 _log("  doğrulandı")
-                verified_emails.append(address)
-                scanned.append(f"{address} (OTP ile doğrulandı)")
+                otp_verified.append(address)
             else:
                 _log("  ! kod doğrulanamadı; bu adres atlandı")
 
-    for path, phone in sms_inputs:
-        _log(f"[sms] {path} ({phone})")
-        try:
-            events.extend(scan_sms_backup(path, phone))
-        except (OSError, ET.ParseError) as e:
-            _log(f"  ! okunamadı: {e}")
-            continue
-        scanned.append(f"{phone} (SMS yedeği)")
-
-    breaches: list[dict] = []
+    hibp_key = None
     if args.hibp:
-        key = os.environ.get("HIBP_API_KEY")
-        if not key:
+        hibp_key = os.environ.get("HIBP_API_KEY")
+        if not hibp_key:
             _log("! --hibp için HIBP_API_KEY ortam değişkeni gerekli (haveibeenpwned.com/API/Key).")
-        for address in verified_emails if key else []:
-            _log(f"[hibp] {address}")
-            try:
-                breaches.extend(breached_account(address, key))
-            except HIBPError as e:
-                _log(f"  ! {e}")
 
-    inventory = build_inventory(events)
-    json_path, html_path = write_reports(Path(args.out), events, inventory, breaches, scanned)
-    _log(f"\n{len(inventory)} hesap, {len(breaches)} sızıntı bulundu.")
+    res = run_scan(
+        imap_accounts=imap_accounts,
+        otp_verified_emails=otp_verified,
+        sms_backups=[SmsBackup(path, phone) for path, phone in sms_inputs],
+        since=since,
+        hibp_key=hibp_key,
+        log=_log,
+    )
+    json_path, html_path = write_reports(Path(args.out), res.events, res.inventory,
+                                         res.breaches, res.scanned)
     print(html_path)
     print(json_path)
     return 0
@@ -140,6 +113,12 @@ def cmd_password(_args: argparse.Namespace) -> int:
         print(f"Bu şifre sızıntılarda {count:,} kez görülmüş. Kullandığınız her yerde değiştirin.")
         return 1
     print("Bu şifre bilinen sızıntılarda bulunamadı.")
+    return 0
+
+
+def cmd_app(args: argparse.Namespace) -> int:
+    from .web import serve
+    serve(port=args.port, open_browser=not args.no_browser)
     return 0
 
 
@@ -169,13 +148,19 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--out", default="ayakizi-rapor", help="rapor klasörü")
     s.set_defaults(func=cmd_scan)
 
+    app = sub.add_parser("app", help="uygulamayı tarayıcıda aç (yerel, 127.0.0.1)")
+    app.add_argument("--port", type=int, default=8765)
+    app.add_argument("--no-browser", action="store_true", help="tarayıcıyı otomatik açma")
+    app.set_defaults(func=cmd_app)
+
     pw = sub.add_parser("password", help="bir şifrenin sızıntılarda olup olmadığını kontrol et")
     pw.set_defaults(func=cmd_password)
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    argv = sys.argv[1:] if argv is None else argv
+    args = build_parser().parse_args(argv or ["app"])  # argümansız: uygulamayı aç
     return args.func(args)
 
 

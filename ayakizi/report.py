@@ -44,24 +44,27 @@ Date:
 """
 
 
-def write_reports(out_dir: Path, events: list[Event], inventory: list[AccountRecord],
-                  breaches: list[dict], scanned: list[str]) -> tuple[Path, Path]:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    now = datetime.now(timezone.utc)
-    inventory = sorted(
+def _sorted(inventory: list[AccountRecord]) -> list[AccountRecord]:
+    return sorted(
         inventory,
         key=lambda r: (CATEGORY_ORDER.index(r.category) if r.category in CATEGORY_ORDER else 99,
                        r.service.lower()))
 
-    data = {
+
+def build_data(events: list[Event], inventory: list[AccountRecord], breaches: list[dict],
+               scanned: list[str], now: datetime | None = None) -> dict:
+    now = now or datetime.now(timezone.utc)
+    return {
         "generated_at": now.isoformat(),
         "scanned": scanned,
         "accounts": [
             {
                 "service": r.service,
                 "category": r.category,
+                "category_label": CATEGORY_LABELS.get(r.category, r.category),
                 "known_service": r.known,
                 "status": r.status(now),
+                "status_label": STATUS_LABELS[r.status(now)],
                 "first_seen": r.first_seen.isoformat() if r.first_seen else None,
                 "last_seen": r.last_seen.isoformat() if r.last_seen else None,
                 "event_counts": r.counts,
@@ -69,16 +72,28 @@ def write_reports(out_dir: Path, events: list[Event], inventory: list[AccountRec
                 "sources": sorted(r.sources),
                 "sample_subjects": r.samples,
             }
-            for r in inventory
+            for r in _sorted(inventory)
         ],
         "breaches": breaches,
         "events": [e.to_dict() for e in events],
     }
+
+
+def render_html(inventory: list[AccountRecord], breaches: list[dict], scanned: list[str],
+                now: datetime | None = None) -> str:
+    return _render_html(_sorted(inventory), breaches, scanned, now or datetime.now(timezone.utc))
+
+
+def write_reports(out_dir: Path, events: list[Event], inventory: list[AccountRecord],
+                  breaches: list[dict], scanned: list[str]) -> tuple[Path, Path]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(timezone.utc)
+    data = build_data(events, inventory, breaches, scanned, now)
     json_path = out_dir / "rapor.json"
     json_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     html_path = out_dir / "rapor.html"
-    html_path.write_text(_render_html(inventory, breaches, scanned, now), encoding="utf-8")
+    html_path.write_text(render_html(inventory, breaches, scanned, now), encoding="utf-8")
     return json_path, html_path
 
 

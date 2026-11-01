@@ -236,7 +236,7 @@ class CliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d, \
                 mock.patch.dict(cli.os.environ, env), \
                 mock.patch.object(cli, "verify_email", lambda addr, cfg: addr == "ok@x.com"), \
-                mock.patch.object(cli, "breached_account",
+                mock.patch("ayakizi.core.breached_account",
                                   lambda addr, key: checked.append(addr) or []):
             rc = cli.main(["scan", "--verify-email", "ok@x.com", "--verify-email", "bad@x.com",
                            "--hibp", "--out", d])

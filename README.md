@@ -39,7 +39,28 @@ Python 3.9+; dış bağımlılık yok.
 pip install .          # ya da doğrudan: python -m ayakizi ...
 ```
 
-## Kullanım
+## Uygulama
+
+```bash
+pip install .
+ayakizi            # ya da: ayakizi app
+```
+
+Tarayıcıda `http://127.0.0.1:8765/` adresinde bir arayüz açılır:
+
+1. **E-posta adresleri:** Uygulama şifresiyle posta kutusunu tarayın ya da IMAP
+   erişimi olmayan adreslere kod gönderip doğrulayın.
+2. **Telefon numaraları:** Numara + Android SMS yedeği (XML) ekleyin.
+3. **Ayarlar:** Kod gönderecek hesap ve Have I Been Pwned anahtarı.
+4. **Taramayı başlat** → hesap envanteri (kategori/durum filtresi), veri
+   sızıntıları, tam rapor (silme talebi şablonlarıyla) ve JSON indirme.
+
+Uygulama yalnızca `127.0.0.1` üzerinde çalışır; şifreler, yüklenen SMS yedekleri
+ve sonuçlar yalnızca bellekte tutulur ve uygulama kapanınca silinir. Sunucu
+başka bir web sitesinden gelen istekleri reddeder (oturum anahtarı + Host
+kontrolü). Uygulamayı internete açık bir sunucuda çalıştırmayın.
+
+## Komut satırı
 
 ```bash
 # Gmail / Outlook için normal şifre değil "uygulama şifresi" kullanın

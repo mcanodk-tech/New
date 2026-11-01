@@ -15,3 +15,6 @@ ayakizi = "ayakizi.cli:main"
 
 [tool.setuptools]
 packages = ["ayakizi"]
+
+[tool.setuptools.package-data]
+ayakizi = ["static/*.html"]

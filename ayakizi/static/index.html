@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ayakizi</title>
+<style>
+:root{
+  --bg:#f6f6f3;--card:#fff;--fg:#1c1c1e;--muted:#6b6b72;--line:#e2e2de;--soft:#f0f0ec;
+  --accent:#3b5bdb;--accent-fg:#fff;--red:#c0392b;--green:#16794a;--amber:#b25e09;
+  --radius:12px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#131315;--card:#1d1d21;--fg:#ececf0;--muted:#9b9ba4;--line:#2d2d33;--soft:#26262b;
+  --accent:#748ffc;--accent-fg:#0d0d10;--red:#ff7b6b;--green:#4fd18b;--amber:#ffb547;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:16px;max-width:1120px;margin:auto}
+header h1{font-size:20px;margin:0}
+header .sub{color:var(--muted);font-size:13px}
+main{max-width:1120px;margin:auto;padding:0 16px 48px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))}
+.card{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.card h2{font-size:15px;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+.step{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;
+  background:var(--soft);font-size:12px;font-weight:700}
+.hint{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+h3{font-size:13px;margin:16px 0 8px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg);color:var(--fg);font:inherit;min-width:0}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px}
+.row>div{flex:1 1 140px;min-width:0}
+button{font:inherit;border:1px solid var(--line);background:var(--soft);color:var(--fg);
+  border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+button.big{padding:11px 22px;font-size:15px}
+button.link{background:none;border:none;color:var(--muted);padding:4px}
+button:disabled{opacity:.5;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--soft);border-radius:99px;
+  padding:3px 4px 3px 10px;font-size:12.5px}
+.chip.ok::before{content:"✓";color:var(--green);font-weight:700}
+.msg{font-size:12.5px;margin-top:6px;min-height:1em}
+.msg.err{color:var(--red)} .msg.ok{color:var(--green)}
+details summary{cursor:pointer;color:var(--muted);font-size:13px}
+.scanbar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.scanbar .opt{display:flex;align-items:center;gap:6px;font-size:13px}
+.scanbar .opt input{width:auto}
+pre.log{background:var(--soft);border-radius:8px;padding:10px;max-height:180px;overflow:auto;
+  font-size:12px;margin:12px 0 0;white-space:pre-wrap}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:8px 0 16px}
+.stat{background:var(--soft);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:24px;line-height:1.2}
+.stat span{color:var(--muted);font-size:12.5px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.filters>*{flex:1 1 160px;width:auto}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600}
+td.small{font-size:12px;color:var(--muted)}
+.pill{font-size:11.5px;padding:2px 8px;border-radius:99px;border:1px solid currentColor;white-space:nowrap}
+.deleted{color:var(--red)} .active{color:var(--green)} .dormant{color:var(--amber)}
+.tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.hidden{display:none!important}
+.empty{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>ayakizi</h1>
+    <div class="sub">Kişisel dijital ayak izi denetimi · yalnızca bu bilgisayarda çalışır</div>
+  </div>
+  <button class="link" id="quit" title="Uygulamayı kapat">Kapat ✕</button>
+</header>
+
+<main>
+  <div class="grid">
+    <!-- E-posta -->
+    <section class="card">
+      <h2><span class="step">1</span>E-posta adresleri</h2>
+      <p class="hint">Giriş yapabildiğiniz adresler taranır; kayıtlı ve silinmiş hesaplar
+        posta kutunuzdaki bildirimlerden çıkarılır. Yalnızca başlıklar okunur.</p>
+
+      <h3>Posta kutusunu tara (önerilen)</h3>
+      <div id="imapRows"></div>
+      <button id="addImap">+ Adres ekle</button>
+      <details style="margin-top:10px"><summary>Uygulama şifresi nasıl alınır?</summary>
+        <p class="hint" style="margin-top:6px">
+          <b>Gmail:</b> Google Hesabı → Güvenlik → 2 Adımlı Doğrulama → Uygulama şifreleri.<br>
+          <b>Outlook/Hotmail:</b> Microsoft hesabı → Güvenlik → Gelişmiş güvenlik → Uygulama parolası.<br>
+          <b>iCloud:</b> appleid.apple.com → Uygulamaya özel parolalar.</p>
+      </details>
+
+      <h3>Kod ile doğrula (yalnızca sızıntı kontrolü)</h3>
+      <p class="hint" id="otpNeedsSmtp">Kod göndermek için önce <b>Ayarlar</b>'da gönderen hesabı girin.</p>
+      <div class="row">
+        <div><label for="otpAddr">E-posta adresi</label>
+          <input id="otpAddr" type="email" placeholder="ad@ornek.com" autocomplete="off"></div>
+        <button id="otpSend">Kod gönder</button>
+      </div>
+      <div class="row hidden" id="otpCodeRow">
+        <div><label for="otpCode">Gelen 6 haneli kod</label>
+          <input id="otpCode" inputmode="numeric" maxlength="7" autocomplete="one-time-code"></div>
+        <button id="otpCheck" class="primary">Doğrula</button>
+      </div>
+      <div class="msg" id="otpMsg"></div>
+      <div class="chips" id="verifiedList"></div>
+    </section>
+
+    <!-- Telefon -->
+    <section class="card">
+      <h2><span class="step">2</span>Telefon numaraları</h2>
+      <p class="hint">Numaranıza gelen doğrulama kodu SMS'lerinden hangi servislere kayıtlı
+        olduğunu bulur. Android'de “SMS Backup &amp; Restore” ile alınan XML yedeğini seçin.
+        Kodlar ve kişisel mesajlar rapora yazılmaz.</p>
+      <div class="row">
+        <div><label for="phone">Numara</label>
+          <input id="phone" type="tel" placeholder="+905551112233"></div>
+        <div><label for="smsFile">SMS yedeği (.xml)</label>
+          <input id="smsFile" type="file" accept=".xml,text/xml"></div>
+      </div>
+      <button id="smsAdd">Ekle</button>
+      <div class="msg" id="smsMsg"></div>
+      <div class="chips" id="smsList"></div>
+
+      <h3>Şifre sızıntı kontrolü</h3>
+      <p class="hint">Şifre gönderilmez; yalnızca özetinin ilk 5 karakteri sorgulanır.</p>
+      <div class="row">
+        <div><label for="pwd">Şifre</label><input id="pwd" type="password" autocomplete="off"></div>
+        <button id="pwdCheck">Kontrol et</button>
+      </div>
+      <div class="msg" id="pwdMsg"></div>
+    </section>
+
+    <!-- Ayarlar -->
+    <section class="card">
+      <h2><span class="step">3</span>Ayarlar</h2>
+      <p class="hint">Yalnızca bellekte tutulur; uygulama kapanınca silinir.</p>
+      <h3>Kod gönderecek e-posta hesabı</h3>
+      <div class="row">
+        <div><label for="smtpUser">Adres</label><input id="smtpUser" type="email" placeholder="ben@gmail.com"></div>
+        <div><label for="smtpPass">Uygulama şifresi</label><input id="smtpPass" type="password"></div>
+      </div>
+      <details><summary>Gelişmiş (SMTP sunucusu)</summary>
+        <div class="row" style="margin-top:8px">
+          <div><label for="smtpHost">Sunucu</label><input id="smtpHost" placeholder="otomatik"></div>
+          <div style="flex:0 1 90px"><label for="smtpPort">Port</label><input id="smtpPort" placeholder="oto"></div>
+        </div>
+      </details>
+      <h3>Have I Been Pwned API anahtarı</h3>
+      <div class="row">
+        <div><label for="hibpKey">Anahtar (haveibeenpwned.com/API/Key)</label>
+          <input id="hibpKey" type="password" autocomplete="off"></div>
+      </div>
+      <button id="saveSettings">Kaydet</button>
+      <div class="msg" id="settingsMsg"></div>
+    </section>
+  </div>
+
+  <!-- Tara -->
+  <section class="card">
+    <div class="scanbar">
+      <button class="primary big" id="scan">Taramayı başlat</button>
+      <div style="flex:0 1 180px"><label for="since">Şu tarihten sonrası (isteğe bağlı)</label>
+        <input id="since" type="date"></div>
+      <label class="opt"><input type="checkbox" id="useHibp" checked> Sızıntı kontrolü</label>
+      <span class="hint" id="scanHint" style="margin:0"></span>
+    </div>
+    <pre class="log hidden" id="log"></pre>
+  </section>
+
+  <!-- Sonuçlar -->
+  <section class="card hidden" id="results">
+    <h2>Sonuçlar</h2>
+    <p class="hint" id="scannedLine"></p>
+    <div class="stats" id="stats"></div>
+    <div class="msg err" id="resultErrors"></div>
+
+    <h3>Hesap envanteri</h3>
+    <div class="filters">
+      <input id="fText" placeholder="Servis ara…">
+      <select id="fCat"><option value="">Tüm kategoriler</option></select>
+      <select id="fStatus"><option value="">Tüm durumlar</option>
+        <option value="active">Aktif olabilir</option>
+        <option value="dormant">Eski / kullanılmıyor</option>
+        <option value="deleted">Silinmiş olabilir</option></select>
+    </div>
+    <div class="wrap"><table>
+      <thead><tr><th>Servis</th><th>Kategori</th><th>Durum</th><th>İlk</th><th>Son</th>
+        <th>Bağlı kimlik</th><th>Örnek bildirim</th></tr></thead>
+      <tbody id="accRows"></tbody></table></div>
+
+    <h3>Veri sızıntıları</h3>
+    <div class="wrap"><table>
+      <thead><tr><th>Sızıntı</th><th>Tarih</th><th>Adres</th><th>Sızan veri</th></tr></thead>
+      <tbody id="breachRows"></tbody></table></div>
+
+    <div class="actions">
+      <button id="openReport">Tam raporu aç (silme talebi şablonlarıyla)</button>
+      <button id="dlJson">JSON indir</button>
+      <button id="reset" class="link">Sonuçları ve yüklenen yedekleri temizle</button>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const TOKEN = "__AYAKIZI_TOKEN__";
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+  }
+  for (const c of kids) n.append(c);
+  return n;
+};
+function setMsg(id, text, ok) {
+  const m = $(id); m.textContent = text || ""; m.className = "msg " + (ok ? "ok" : (text ? "err" : ""));
+}
+async function api(path, body, raw) {
+  const opts = { method: body === undefined ? "GET" : "POST", headers: { "X-Ayakizi-Token": TOKEN } };
+  if (raw) { opts.body = raw; opts.headers["Content-Type"] = "application/octet-stream"; }
+  else if (body !== undefined) { opts.body = JSON.stringify(body); opts.headers["Content-Type"] = "application/json"; }
+  const r = await fetch(path, opts);
+  let data = {};
+  try { data = await r.json(); } catch (_) {}
+  if (!r.ok) throw new Error(data.error || ("HTTP " + r.status));
+  return data;
+}
+
+/* ---------- IMAP satırları ---------- */
+function addImapRow(addr = "") {
+  const row = el("div", { class: "row imap" },
+    el("div", {}, el("label", { text: "E-posta" }), el("input", { type: "email", class: "i-addr", placeholder: "ben@gmail.com", value: addr })),
+    el("div", {}, el("label", { text: "Uygulama şifresi" }), el("input", { type: "password", class: "i-pass", autocomplete: "off" })),
+    el("div", { style: "flex:0 1 150px" }, el("label", { text: "IMAP sunucusu" }), el("input", { class: "i-host", placeholder: "otomatik" })),
+    el("button", { class: "link", title: "Kaldır", text: "✕", onclick: () => row.remove() }));
+  $("imapRows").append(row);
+}
+$("addImap").onclick = () => addImapRow();
+addImapRow();
+
+/* ---------- Durum ---------- */
+let state = null, polling = null;
+async function refresh() {
+  state = await api("/api/state");
+  $("otpNeedsSmtp").classList.toggle("hidden", state.smtp_configured);
+  if (state.smtp_user && !$("smtpUser").value) $("smtpUser").value = state.smtp_user;
+  $("verifiedList").replaceChildren(...state.verified.map(a => el("span", { class: "chip ok", text: a })));
+  $("smsList").replaceChildren(...state.sms.map(s => el("span", { class: "chip" },
+    `${s.phone} · ${s.name} (${Math.max(1, Math.round(s.size / 1024))} KB)`,
+    el("button", { class: "link", text: "✕", title: "Kaldır", onclick: async () => { await api("/api/sms/remove", { id: s.id }); refresh(); } }))));
+  $("scanHint").textContent = state.hibp_configured ? "" : "Sızıntı kontrolü için Ayarlar'a HIBP anahtarı girin.";
+  const job = state.job;
+  const running = job.status === "running";
+  $("scan").disabled = running;
+  $("scan").textContent = running ? "Taranıyor…" : "Taramayı başlat";
+  if (job.log.length) { const lg = $("log"); lg.classList.remove("hidden"); lg.textContent = job.log.join("\n"); lg.scrollTop = lg.scrollHeight; }
+  if (running && !polling) polling = setInterval(refresh, 1000);
+  if (!running && polling) { clearInterval(polling); polling = null; }
+  renderResults(state.result);
+}
+
+/* ---------- OTP ---------- */
+$("otpSend").onclick = async () => {
+  const address = $("otpAddr").value.trim();
+  $("otpSend").disabled = true; setMsg("otpMsg", "Gönderiliyor…", true);
+  try {
+    const r = await api("/api/otp/send", { address });
+    setMsg("otpMsg", r.message, true); $("otpCodeRow").classList.remove("hidden"); $("otpCode").focus();
+  } catch (e) { setMsg("otpMsg", e.message); }
+  $("otpSend").disabled = false;
+};
+$("otpCheck").onclick = async () => {
+  try {
+    const r = await api("/api/otp/check", { address: $("otpAddr").value, code: $("otpCode").value });
+    setMsg("otpMsg", r.message, r.ok);
+    if (r.ok) { $("otpCode").value = ""; $("otpAddr").value = ""; $("otpCodeRow").classList.add("hidden"); refresh(); }
+  } catch (e) { setMsg("otpMsg", e.message); }
+};
+$("otpCode").addEventListener("keydown", e => { if (e.key === "Enter") $("otpCheck").click(); });
+
+/* ---------- SMS ---------- */
+$("smsAdd").onclick = async () => {
+  const f = $("smsFile").files[0], phone = $("phone").value.trim();
+  if (!phone) return setMsg("smsMsg", "Numarayı girin.");
+  if (!f) return setMsg("smsMsg", "SMS yedeği dosyasını seçin.");
+  setMsg("smsMsg", "Yükleniyor…", true);
+  try {
+    await api(`/api/sms?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(f.name)}`, null, await f.arrayBuffer());
+    setMsg("smsMsg", "Eklendi.", true); $("smsFile").value = ""; $("phone").value = ""; refresh();
+  } catch (e) { setMsg("smsMsg", e.message); }
+};
+
+/* ---------- Ayarlar ---------- */
+$("saveSettings").onclick = async () => {
+  const body = {};
+  const user = $("smtpUser").value.trim(), pass = $("smtpPass").value;
+  if (user && pass) Object.assign(body, { smtp_user: user, smtp_password: pass,
+    smtp_host: $("smtpHost").value.trim(), smtp_port: $("smtpPort").value.trim() });
+  else if (user && !(state && state.smtp_configured)) return setMsg("settingsMsg", "Uygulama şifresini girin.");
+  if ($("hibpKey").value.trim()) body.hibp_key = $("hibpKey").value.trim();
+  if (!Object.keys(body).length) return setMsg("settingsMsg", "Değişiklik yok.", true);
+  try { await api("/api/settings", body); setMsg("settingsMsg", "Kaydedildi.", true); $("smtpPass").value = ""; $("hibpKey").value = ""; refresh(); }
+  catch (e) { setMsg("settingsMsg", e.message); }
+};
+
+/* ---------- Şifre ---------- */
+$("pwdCheck").onclick = async () => {
+  setMsg("pwdMsg", "Kontrol ediliyor…", true);
+  try {
+    const r = await api("/api/password", { password: $("pwd").value });
+    $("pwd").value = "";
+    if (r.count) setMsg("pwdMsg", `Bu şifre sızıntılarda ${r.count.toLocaleString("tr-TR")} kez görülmüş. Kullandığınız her yerde değiştirin.`);
+    else setMsg("pwdMsg", "Bilinen sızıntılarda bulunamadı.", true);
+  } catch (e) { setMsg("pwdMsg", e.message); }
+};
+
+/* ---------- Tarama ---------- */
+$("scan").onclick = async () => {
+  const imap = [...document.querySelectorAll(".row.imap")].map(r => ({
+    address: r.querySelector(".i-addr").value.trim(),
+    password: r.querySelector(".i-pass").value,
+    host: r.querySelector(".i-host").value.trim(),
+  })).filter(a => a.address && a.password);
+  try {
+    await api("/api/scan", { imap, since: $("since").value || null, hibp: $("useHibp").checked });
+    refresh();
+  } catch (e) { const lg = $("log"); lg.classList.remove("hidden"); lg.textContent = "! " + e.message; }
+};
+
+/* ---------- Sonuçlar ---------- */
+const fmt = (iso) => iso ? iso.slice(0, 10) : "—";
+function renderResults(data) {
+  $("results").classList.toggle("hidden", !data);
+  if (!data) return;
+  const acc = data.accounts;
+  $("scannedLine").textContent = "Taranan: " + data.scanned.join(", ");
+  const n = (f) => acc.filter(f).length;
+  const tiles = [
+    [acc.length, "tespit edilen hesap"],
+    [n(a => a.category === "dating"), "arkadaşlık uygulaması"],
+    [n(a => a.status === "deleted"), "silinmiş olabilir"],
+    [data.breaches.length, "veri sızıntısı"],
+  ];
+  $("stats").replaceChildren(...tiles.map(([v, l]) => el("div", { class: "stat" }, el("b", { text: String(v) }), el("span", { text: l }))));
+  $("resultErrors").textContent = (data.errors || []).join(" · ");
+
+  const cats = [...new Map(acc.map(a => [a.category, a.category_label])).entries()];
+  const sel = $("fCat"), cur = sel.value;
+  sel.replaceChildren(el("option", { value: "", text: "Tüm kategoriler" }), ...cats.map(([v, l]) => el("option", { value: v, text: l })));
+  sel.value = cur;
+  renderAccounts();
+
+  $("breachRows").replaceChildren(...(data.breaches.length ? data.breaches.map(b => el("tr", {},
+    el("td", {}, el("b", { text: b.title || b.name || "" }), el("div", { class: "small", text: b.domain || "" })),
+    el("td", { text: b.breach_date || "" }), el("td", { text: b.account || "" }),
+    el("td", { class: "small", text: (b.data_classes || []).join(", ") })))
+    : [el("tr", {}, el("td", { colspan: "4", class: "empty", text: "Sızıntı bulunamadı ya da kontrol yapılmadı." }))]));
+}
+function renderAccounts() {
+  if (!state || !state.result) return;
+  const q = $("fText").value.toLowerCase(), c = $("fCat").value, s = $("fStatus").value;
+  const rows = state.result.accounts.filter(a =>
+    (!q || a.service.toLowerCase().includes(q)) && (!c || a.category === c) && (!s || a.status === s));
+  $("accRows").replaceChildren(...(rows.length ? rows.map(a => el("tr", {},
+    el("td", {}, el("b", { text: a.service }), ...(a.known_service ? [] : [el("span", { class: "tag", text: "katalog dışı" })])),
+    el("td", { text: a.category_label }),
+    el("td", {}, el("span", { class: "pill " + a.status, text: a.status_label })),
+    el("td", { text: fmt(a.first_seen) }), el("td", { text: fmt(a.last_seen) }),
+    el("td", { class: "small", text: a.linked_identities.join(", ") }),
+    el("td", { class: "small", text: a.sample_subjects[0] || "" })))
+    : [el("tr", {}, el("td", { colspan: "7", class: "empty", text: "Sonuç yok." }))]));
+}
+["fText", "fCat", "fStatus"].forEach(id => $(id).addEventListener("input", renderAccounts));
+$("openReport").onclick = () => window.open("/report?t=" + encodeURIComponent(TOKEN), "_blank", "noopener");
+$("dlJson").onclick = () => { location.href = "/report.json?t=" + encodeURIComponent(TOKEN); };
+$("reset").onclick = async () => { await api("/api/reset", {}); $("log").classList.add("hidden"); refresh(); };
+$("quit").onclick = async () => {
+  if (!confirm("Uygulama kapatılsın mı? Bellekteki tüm veriler silinir.")) return;
+  try { await api("/api/quit", {}); } catch (_) {}
+  document.body.replaceChildren(el("main", {}, el("p", { class: "empty", text: "Uygulama kapatıldı. Bu sekmeyi kapatabilirsiniz." })));
+};
+refresh().catch(e => setMsg("settingsMsg", e.message));
+</script>
+</body>
+</html>

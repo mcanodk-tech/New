@@ -111,3 +111,40 @@ def verify_email(
         if hmac.compare_digest(entered.strip().replace(" ", ""), code):
             return True
     return False
+
+
+class OtpStore:
+    """Uygulama için iki adımlı OTP: `issue` kodu gönderir, `check` doğrular."""
+
+    def __init__(self, sender: Callable[[SmtpConfig, str, str], None] = send_code,
+                 clock: Callable[[], float] = time.monotonic) -> None:
+        self._sender = sender
+        self._clock = clock
+        self._pending: dict[str, tuple[str, float, int]] = {}
+        self.verified: set[str] = set()
+
+    def issue(self, address: str, cfg: SmtpConfig) -> None:
+        address = address.strip().lower()
+        code = generate_code()
+        self._sender(cfg, address, code)
+        self._pending[address] = (code, self._clock() + CODE_TTL_SECONDS, 0)
+
+    def check(self, address: str, entered: str) -> tuple[bool, str]:
+        address = address.strip().lower()
+        pending = self._pending.get(address)
+        if pending is None:
+            return False, "Bu adres için gönderilmiş bir kod yok."
+        code, deadline, attempts = pending
+        if self._clock() > deadline:
+            del self._pending[address]
+            return False, "Kodun süresi doldu; yeniden gönderin."
+        if hmac.compare_digest(entered.strip().replace(" ", ""), code):
+            del self._pending[address]
+            self.verified.add(address)
+            return True, "Doğrulandı."
+        attempts += 1
+        if attempts >= MAX_ATTEMPTS:
+            del self._pending[address]
+            return False, "Deneme hakkı bitti; yeniden kod gönderin."
+        self._pending[address] = (code, deadline, attempts)
+        return False, f"Kod hatalı ({MAX_ATTEMPTS - attempts} deneme kaldı)."
