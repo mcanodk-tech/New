@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<!-- İnceleme ve deneme için sahte veriler. Gerçek kişi veya numara içermez. -->
+<smses count="6" backup_set="sample" backup_date="1761955200000" type="full">
+  <sms protocol="0" address="TINDER" date="1546300800000" type="1" body="Your Tinder code is 482913. Don't share it." read="1" status="-1" locked="0" date_sent="1546300800000" readable_date="1 Oca 2019 03:00:00" contact_name="(Unknown)" />
+  <sms protocol="0" address="BUMBLE" date="1700000000000" type="1" body="Your Bumble verification code is 5531" read="1" status="-1" locked="0" date_sent="1700000000000" readable_date="14 Kas 2023 22:13:20" contact_name="(Unknown)" />
+  <sms protocol="0" address="TRENDYOL" date="1755000000000" type="1" body="Trendyol doğrulama kodunuz: 902114" read="1" status="-1" locked="0" date_sent="1755000000000" readable_date="12 Ağu 2025 15:00:00" contact_name="(Unknown)" />
+  <sms protocol="0" address="GETIR" date="1600000000000" type="1" body="Getir hesabınız silindi. Bizi tercih ettiğiniz için teşekkürler." read="1" status="-1" locked="0" date_sent="1600000000000" readable_date="13 Eyl 2020 15:26:40" contact_name="(Unknown)" />
+  <sms protocol="0" address="+900000000000" date="1760000000000" type="1" body="Akşam görüşürüz" read="1" status="-1" locked="0" date_sent="1760000000000" readable_date="9 Eki 2025 11:53:20" contact_name="Örnek Kişi" />
+  <sms protocol="0" address="+900000000000" date="1760000100000" type="2" body="Tamam" read="1" status="-1" locked="0" date_sent="1760000100000" readable_date="9 Eki 2025 11:55:00" contact_name="Örnek Kişi" />
+</smses>

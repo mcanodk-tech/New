@@ -10,3 +10,8 @@
 pubspec.lock
 *.iml
 .idea/
+
+# İmzalama anahtarları asla commit edilmez
+*.jks
+*.keystore
+key.properties

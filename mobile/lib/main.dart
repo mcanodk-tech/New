@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_state.dart';
+import 'ui/consent_page.dart';
 import 'ui/home_page.dart';
 
 void main() {
@@ -24,7 +25,15 @@ class AyakiziApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: seed),
       darkTheme: ThemeData(colorSchemeSeed: seed, brightness: Brightness.dark),
-      home: HomePage(state: state),
+      home: ListenableBuilder(
+        listenable: state,
+        builder: (context, _) {
+          if (!state.loaded) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          return state.consented ? HomePage(state: state) : ConsentPage(state: state);
+        },
+      ),
     );
   }
 }

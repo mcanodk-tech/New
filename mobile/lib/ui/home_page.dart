@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import '../core/imap.dart';
-import '../core/sms.dart';
 import 'add_email_sheet.dart';
 import 'common.dart';
 import 'password_page.dart';
@@ -36,6 +35,41 @@ class _HomePageState extends State<HomePage> {
       helpText: 'Bu tarihten sonraki mesajlar',
     );
     if (d != null) setState(() => _since = d);
+  }
+
+  Future<void> _importSms(BuildContext context) async {
+    final ctrl = TextEditingController();
+    final phone = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('SMS yedeği içe aktar'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Yedeğin ait olduğu kendi numaranızı girin; ardından XML dosyasını seçin.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Numaranız',
+                hintText: '+905551112233',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Vazgeç')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('Dosya seç')),
+        ],
+      ),
+    );
+    if (phone == null) return;
+    final err = await s.importSms(phone);
+    if (err != null && context.mounted) toast(context, err);
   }
 
   void _startScan() {
@@ -124,33 +158,28 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
               SectionCard(
-                title: 'Telefon (SMS)',
-                hint: SmsSource.supported
-                    ? 'Doğrulama kodu SMS\'lerinden numaranızın kayıtlı olduğu servisleri bulur. '
-                        'Kodlar maskelenir, kişisel mesajlar hiç saklanmaz.'
-                    : 'iPhone, uygulamaların SMS okumasına izin vermediği için bu özellik '
-                        'yalnızca Android\'de çalışır.',
+                title: 'Telefon numaraları (SMS yedeği)',
+                hint: 'Numaranıza gelen doğrulama kodu SMS\'lerinden kayıtlı olduğu servisleri bulur. '
+                    'Android\'de "SMS Backup & Restore" ile aldığınız XML yedeğini seçin. '
+                    'Kodlar maskelenir, kişisel mesajlar saklanmaz; yedek yalnızca bellekte işlenir.',
+                trailing: TextButton.icon(
+                  icon: const Icon(Icons.upload_file),
+                  label: const Text('İçe aktar'),
+                  onPressed: () => _importSms(context),
+                ),
                 children: [
-                  if (SmsSource.supported) ...[
-                    SwitchListTile(
+                  for (final b in s.smsBackups)
+                    ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Bu telefonun SMS\'lerini tara'),
-                      value: s.includeSms,
-                      onChanged: (v) => s.setSms(include: v),
-                    ),
-                    if (s.includeSms)
-                      TextFormField(
-                        initialValue: s.phoneLabel,
-                        keyboardType: TextInputType.phone,
-                        decoration: const InputDecoration(
-                          labelText: 'Numaranız (raporda görünecek)',
-                          hintText: '+905551112233',
-                          border: OutlineInputBorder(),
-                          isDense: true,
-                        ),
-                        onChanged: (v) => s.setSms(label: v),
+                      leading: const Icon(Icons.sms_outlined),
+                      title: Text(b.phone),
+                      subtitle: Text('${b.fileName} · ${b.messages.length} mesaj'),
+                      trailing: IconButton(
+                        tooltip: 'Kaldır',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => s.removeSms(b),
                       ),
-                  ],
+                    ),
                 ],
               ),
               SectionCard(

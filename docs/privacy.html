@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ayakizi Gizlilik Politikası</title>
+<style>
+:root{--bg:#fafaf8;--fg:#1d1d1f;--muted:#5f5f66;--line:#e2e2de;--accent:#3b5bdb}
+@media (prefers-color-scheme:dark){:root{--bg:#141416;--fg:#ececf0;--muted:#a0a0a8;--line:#2d2d33;--accent:#91a7ff}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:760px;margin:auto;padding:32px 16px 64px}
+h1{font-size:28px;margin:0 0 4px} h2{font-size:19px;margin:32px 0 8px}
+.muted{color:var(--muted);font-size:14px} a{color:var(--accent)}
+nav{margin:12px 0 24px;font-size:14px} hr{border:0;border-top:1px solid var(--line);margin:48px 0}
+ul{padding-left:20px}
+</style>
+</head>
+<body>
+<main>
+<h1>ayakizi Gizlilik Politikası</h1>
+<p class="muted">Yürürlük tarihi: 1 Kasım 2026</p>
+<nav><a href="#tr">Türkçe</a> · <a href="#en">English</a></nav>
+
+<section id="tr">
+<p>ayakizi ("Uygulama"), kendi e-posta kutunuz ve kendi SMS yedeğiniz üzerinden
+hangi çevrimiçi servislerde hesabınız olduğunu göstermek için tasarlanmış bir
+kişisel denetim aracıdır. Bu politika Uygulamanın hangi verileri nasıl
+işlediğini açıklar.</p>
+
+<h2>Özet</h2>
+<ul>
+<li>Uygulamanın bir sunucusu yoktur. Geliştirici sizin hiçbir verinizi almaz,
+saklamaz ya da görmez.</li>
+<li>Tüm tarama ve analiz cihazınızda yapılır.</li>
+<li>Reklam, analiz, çökme raporlama ya da izleme aracı kullanılmaz.</li>
+<li>Uygulama başka kişileri sorgulamak için kullanılamaz; yalnızca giriş
+yapabildiğiniz ya da koda erişebildiğiniz adresler taranır.</li>
+</ul>
+
+<h2>Cihazınızda işlenen veriler</h2>
+<ul>
+<li><b>E-posta başlıkları:</b> Eklediğiniz adreslerin posta kutusuna IMAP ile
+salt-okunur bağlanılır ve yalnızca <i>gönderen</i>, <i>konu</i> ve
+<i>tarih</i> alanları okunur. Mesaj içerikleri ve ekler indirilmez; mesajlar
+okunmuş olarak işaretlenmez.</li>
+<li><b>SMS yedeği:</b> Uygulama SMS'lerinize erişmez ve SMS izni istemez.
+Yalnızca sizin seçtiğiniz yedek dosyası bellekte işlenir. Hesapla ilgisiz
+kişisel mesajlar atılır, doğrulama kodları maskelenir. Yedek kalıcı olarak
+saklanmaz; uygulama kapanınca bellekten silinir.</li>
+<li><b>Kimlik bilgileri ve ayarlar:</b> E-posta uygulama şifreleri, kod
+göndermek için girdiğiniz SMTP hesabı ve Have I Been Pwned API anahtarı
+cihazın şifreli deposunda (Android Keystore / iOS Keychain) saklanır.</li>
+<li><b>Sonuçlar:</b> Tarama sonuçları yalnızca bellekte tutulur. Panoya
+kopyalamadığınız sürece cihazdan çıkmaz.</li>
+</ul>
+
+<h2>Cihaz dışına giden bağlantılar</h2>
+<p>Uygulama yalnızca aşağıdaki bağlantıları ve yalnızca sizin başlattığınız
+işlemler için kurar. Tüm bağlantılar TLS ile şifrelenir.</p>
+<ul>
+<li><b>Sizin e-posta sağlayıcınız</b> (ör. Gmail, Outlook): posta kutusunu
+taramak (IMAP) ve isterseniz kendi adresinize doğrulama kodu göndermek (SMTP)
+için. Bu bağlantılar doğrudan sağlayıcınıza gider.</li>
+<li><b>Have I Been Pwned</b> (haveibeenpwned.com): Yalnızca sızıntı kontrolünü
+açtığınızda, sahipliği doğrulanmış e-posta adresleriniz kendi API anahtarınızla
+sorgulanır. Bu hizmetin kendi gizlilik politikası geçerlidir.</li>
+<li><b>Pwned Passwords</b> (api.pwnedpasswords.com): Şifre kontrolünde şifreniz
+gönderilmez; yalnızca SHA-1 özetinin ilk 5 karakteri gönderilir
+(k-anonimlik) ve eşleşme cihazınızda yapılır.</li>
+</ul>
+
+<h2>Paylaşım</h2>
+<p>Geliştirici hiçbir veriyi toplamadığı için hiçbir veriyi üçüncü kişilerle
+paylaşmaz ya da satmaz.</p>
+
+<h2>Verilerinizi silme</h2>
+<p>Uygulamada <i>Ayarlar → Bu cihazdaki tüm verileri sil</i> ile tüm kayıtlı
+adresleri, şifreleri ve anahtarları silebilirsiniz. Uygulamayı kaldırmak da
+tüm verileri siler. Uygulamada hesap oluşturulmadığı için silinecek bir sunucu
+hesabı yoktur.</p>
+
+<h2>Çocuklar</h2>
+<p>Uygulama 18 yaşından küçükler için tasarlanmamıştır.</p>
+
+<h2>Değişiklikler ve iletişim</h2>
+<p>Bu politika değişirse güncel sürüm bu sayfada yayınlanır. Sorularınız için:
+<a href="mailto:ILETISIM_EPOSTASI">ILETISIM_EPOSTASI</a></p>
+</section>
+
+<hr>
+
+<section id="en" lang="en">
+<h1>ayakizi Privacy Policy</h1>
+<p class="muted">Effective date: 1 November 2026</p>
+<p>ayakizi (the "App") is a personal audit tool that shows which online
+services you have accounts with, using your own mailbox and your own SMS
+backup. This policy explains what data the App processes and how.</p>
+
+<h2>Summary</h2>
+<ul>
+<li>The App has no server. The developer does not receive, store or see any of
+your data.</li>
+<li>All scanning and analysis happens on your device.</li>
+<li>No advertising, analytics, crash reporting or tracking tools are used.</li>
+<li>The App cannot be used to look up other people; only addresses you can
+sign in to or receive a code at are scanned.</li>
+</ul>
+
+<h2>Data processed on your device</h2>
+<ul>
+<li><b>Email headers:</b> The App connects read-only (IMAP) to the mailboxes
+you add and reads only the <i>sender</i>, <i>subject</i> and <i>date</i>
+fields. Message bodies and attachments are never downloaded; messages are not
+marked as read.</li>
+<li><b>SMS backup:</b> The App does not access your SMS and does not request
+SMS permission. Only a backup file you select is processed in memory.
+Personal messages are discarded and verification codes masked. The backup is
+not stored and is cleared when the App closes.</li>
+<li><b>Credentials and settings:</b> Mail app passwords, the SMTP account you
+enter for sending codes, and your Have I Been Pwned API key are stored in the
+device's encrypted storage (Android Keystore / iOS Keychain).</li>
+<li><b>Results:</b> Scan results are kept in memory only and never leave the
+device unless you copy them.</li>
+</ul>
+
+<h2>Connections off the device</h2>
+<p>The App only makes the following connections, only for actions you start.
+All connections are encrypted with TLS.</p>
+<ul>
+<li><b>Your email provider</b> (e.g. Gmail, Outlook): to scan your mailbox
+(IMAP) and, if you choose, to send a verification code to your own address
+(SMTP). These go directly to your provider.</li>
+<li><b>Have I Been Pwned</b> (haveibeenpwned.com): only when you enable breach
+checks, your verified email addresses are queried using your own API key. That
+service's privacy policy applies.</li>
+<li><b>Pwned Passwords</b> (api.pwnedpasswords.com): your password is never
+sent; only the first 5 characters of its SHA-1 hash are sent (k-anonymity) and
+matching happens on your device.</li>
+</ul>
+
+<h2>Sharing</h2>
+<p>The developer collects no data, and therefore shares or sells none.</p>
+
+<h2>Deleting your data</h2>
+<p>Use <i>Settings → Delete all data on this device</i> in the App to remove
+all saved addresses, passwords and keys. Uninstalling the App also removes all
+data. The App has no user accounts, so there is no server-side account to
+delete.</p>
+
+<h2>Children</h2>
+<p>The App is not intended for anyone under 18.</p>
+
+<h2>Changes and contact</h2>
+<p>If this policy changes, the current version will be published on this page.
+Questions: <a href="mailto:ILETISIM_EPOSTASI">ILETISIM_EPOSTASI</a></p>
+</section>
+</main>
+</body>
+</html>

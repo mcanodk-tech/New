@@ -60,8 +60,7 @@ Future<List<AccountEvent>> _defaultMailboxScanner(
 Future<ScanResult> runScan({
   List<ImapAccount> imapAccounts = const [],
   List<String> otpVerified = const [],
-  List<SmsMessage>? smsMessages,
-  String phoneLabel = 'Bu telefon',
+  List<SmsBackup> smsBackups = const [],
   DateTime? since,
   String? hibpKey,
   required void Function(String) log,
@@ -105,10 +104,10 @@ Future<ScanResult> runScan({
     }
   }
 
-  if (smsMessages != null) {
-    log('[sms] $phoneLabel: ${smsMessages.length} mesaj');
-    events.addAll(smsToEvents(smsMessages, phoneLabel));
-    scanned.add('$phoneLabel (SMS)');
+  for (final b in smsBackups) {
+    log('[sms] ${b.phone}: ${b.fileName} (${b.messages.length} mesaj)');
+    events.addAll(smsToEvents(b.messages, b.phone));
+    scanned.add('${b.phone} (SMS yedeği)');
   }
 
   if (hibpKey != null && hibpKey.isNotEmpty) {

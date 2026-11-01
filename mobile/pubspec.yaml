@@ -1,21 +1,32 @@
 name: ayakizi
-description: Kişisel dijital ayak izi denetimi — kendi e-posta kutunuzu ve SMS'lerinizi tarar.
+description: Kişisel dijital ayak izi denetimi — kendi e-posta kutunuzu ve SMS yedeğinizi tarar.
 publish_to: none
-version: 0.1.0+1
+version: 1.0.0+1
 
 environment:
-  sdk: ">=3.5.0 <4.0.0"
+  sdk: ">=3.10.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
   crypto: ^3.0.6
+  file_picker: ^13.3.0
   flutter_secure_storage: ^11.0.0
+  xml: ^7.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
   flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icon/icon.png
+  remove_alpha_ios: true
+  adaptive_icon_background: "#3B5BDB"
+  adaptive_icon_foreground: assets/icon/icon_fg.png

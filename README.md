@@ -41,10 +41,10 @@ pip install .          # ya da doğrudan: python -m ayakizi ...
 
 ## Mobil uygulama
 
-`mobile/` klasöründe Flutter ile yazılmış Android/iOS uygulaması var. Android'de
-SMS'ler yedek dosyası gerekmeden doğrudan telefondan okunur. Hazır APK'yı
-GitHub'da **Actions → mobile → Artifacts → `ayakizi-apk`** altından
-indirebilirsiniz. Ayrıntılar: [`mobile/README.md`](mobile/README.md).
+`mobile/` klasöründe Google Play ve App Store'da yayınlanmak üzere hazırlanmış
+Flutter uygulaması var. Derlenmiş paketler: **Actions → mobile → Artifacts →
+`ayakizi-android`**. Yayınlama adımları:
+[`mobile/store/PUBLISHING.md`](mobile/store/PUBLISHING.md).
 
 ## Masaüstü uygulama (tarayıcı)
 

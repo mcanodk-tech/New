@@ -40,26 +40,29 @@ class MemoryKeyValueStore implements KeyValueStore {
 
 enum ScanStatus { idle, running, done, failed }
 
+typedef SmsPicker = Future<SmsBackup?> Function(String phone);
+
 class AppState extends ChangeNotifier {
-  AppState({KeyValueStore? store, OtpStore? otp, SmsSource? sms, HibpClient? hibp})
+  AppState({KeyValueStore? store, OtpStore? otp, SmsPicker? smsPicker, HibpClient? hibp})
       : _store = store ?? SecureKeyValueStore(),
         otp = otp ?? OtpStore(),
-        _sms = sms ?? SmsSource(),
+        _pickSms = smsPicker ?? pickSmsBackup,
         _hibp = hibp ?? HibpClient();
 
   static const _key = 'ayakizi_state_v1';
 
   final KeyValueStore _store;
   final OtpStore otp;
-  final SmsSource _sms;
+  final SmsPicker _pickSms;
   final HibpClient _hibp;
 
   final List<ImapAccount> accounts = [];
   final List<String> verified = [];
   SmtpConfig? smtp;
   String? hibpKey;
-  bool includeSms = SmsSource.supported;
-  String phoneLabel = '';
+  /// İçe aktarılan SMS yedekleri yalnızca bellekte tutulur.
+  final List<SmsBackup> smsBackups = [];
+  bool consented = false;
   bool loaded = false;
 
   ScanStatus status = ScanStatus.idle;
@@ -77,8 +80,7 @@ class AppState extends ChangeNotifier {
         verified.addAll((j['verified'] as List? ?? const []).whereType<String>());
         smtp = SmtpConfig.fromJson(j['smtp']);
         hibpKey = j['hibpKey'] as String?;
-        includeSms = (j['includeSms'] as bool?) ?? includeSms;
-        phoneLabel = (j['phoneLabel'] as String?) ?? '';
+        consented = (j['consented'] as bool?) ?? false;
       }
     } catch (e) {
       debugPrint('ayarlar okunamadı: $e');
@@ -94,8 +96,7 @@ class AppState extends ChangeNotifier {
           'verified': verified,
           'smtp': smtp?.toJson(),
           'hibpKey': hibpKey,
-          'includeSms': includeSms,
-          'phoneLabel': phoneLabel,
+          'consented': consented,
         }),
       );
 
@@ -104,7 +105,12 @@ class AppState extends ChangeNotifier {
     await _save();
   }
 
-  bool get hasAnySource => accounts.isNotEmpty || verified.isNotEmpty || (includeSms && SmsSource.supported);
+  bool get hasAnySource => accounts.isNotEmpty || verified.isNotEmpty || smsBackups.isNotEmpty;
+
+  Future<void> acceptConsent() async {
+    consented = true;
+    await _changed();
+  }
 
   Future<void> addAccount(ImapAccount a) async {
     accounts.removeWhere((x) => x.address.toLowerCase() == a.address.toLowerCase());
@@ -132,10 +138,27 @@ class AppState extends ChangeNotifier {
     await _changed();
   }
 
-  Future<void> setSms({bool? include, String? label}) async {
-    if (include != null) includeSms = include;
-    if (label != null) phoneLabel = label.trim();
-    await _changed();
+  /// SMS yedeği seçtirip içe aktarır. Hata mesajı döner; vazgeçilirse ya da
+  /// başarılıysa null.
+  Future<String?> importSms(String phone) async {
+    final p = phone.replaceAll(' ', '');
+    if (!RegExp(r'^\+?\d{7,15}$').hasMatch(p)) return 'Numarayı +905551112233 biçiminde girin.';
+    try {
+      final b = await _pickSms(p);
+      if (b == null) return null;
+      smsBackups.add(b);
+      notifyListeners();
+      return null;
+    } on SmsBackupException catch (e) {
+      return e.message;
+    } on Exception catch (e) {
+      return 'Dosya okunamadı: $e';
+    }
+  }
+
+  void removeSms(SmsBackup b) {
+    smsBackups.remove(b);
+    notifyListeners();
   }
 
   /// Kod gönderir. Hata mesajı döner; başarılıysa null.
@@ -177,20 +200,19 @@ class AppState extends ChangeNotifier {
     }
 
     try {
-      List<SmsMessage>? messages;
-      if (includeSms && SmsSource.supported) {
-        if (await _sms.requestPermission()) {
-          say('[sms] gelen kutusu okunuyor…');
-          messages = await _sms.readInbox(since: since);
-        } else {
-          say('  ! SMS izni verilmedi; SMS taraması atlandı.');
-        }
-      }
       result = await runScan(
         imapAccounts: List.of(accounts),
         otpVerified: List.of(verified),
-        smsMessages: messages,
-        phoneLabel: phoneLabel.isEmpty ? 'Bu telefon' : phoneLabel,
+        smsBackups: [
+          for (final b in smsBackups)
+            SmsBackup(
+              phone: b.phone,
+              fileName: b.fileName,
+              messages: since == null
+                  ? b.messages
+                  : [for (final m in b.messages) if (m.date == null || !m.date!.isBefore(since)) m],
+            ),
+        ],
         since: since,
         hibpKey: useHibp ? hibpKey : null,
         hibp: _hibp,
@@ -211,7 +233,8 @@ class AppState extends ChangeNotifier {
     verified.clear();
     smtp = null;
     hibpKey = null;
-    phoneLabel = '';
+    smsBackups.clear();
+    consented = false;
     result = null;
     log.clear();
     status = ScanStatus.idle;

@@ -1,7 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Yalnızca bu telefonun gelen kutusu okunur; mesajlar cihazdan çıkmaz. -->
-    <uses-permission android:name="android.permission.READ_SMS" />
 
     <application
         android:label="ayakizi"

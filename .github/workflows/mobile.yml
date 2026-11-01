@@ -9,6 +9,14 @@ on:
     paths:
       - 'mobile/**'
   workflow_dispatch:
+    inputs:
+      ios:
+        description: 'iOS derlemesini de çalıştır (macOS dakikası harcar)'
+        type: boolean
+        default: false
+
+env:
+  FLUTTER_VERSION: '3.47.9'
 
 jobs:
   android:
@@ -27,7 +35,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: '3.47.9'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
 
       - name: Platform klasörlerini üret
@@ -39,14 +47,58 @@ jobs:
       - name: Analiz
         run: flutter analyze --no-fatal-infos
 
-      - name: APK derle
-        run: flutter build apk --release
+      - name: Yükleme anahtarı (varsa)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::ANDROID_KEYSTORE_BASE64 tanımlı değil; paket hata ayıklama anahtarıyla imzalanacak ve Play Console'a yüklenemez."
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          {
+            echo "storeFile=upload-keystore.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyPassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+          } > android/key.properties
+
+      - name: Mağaza paketi (AAB) ve APK
+        run: |
+          BUILD_NUMBER=$((GITHUB_RUN_NUMBER + 1))
+          flutter build appbundle --release --build-number=$BUILD_NUMBER
+          flutter build apk --release --build-number=$BUILD_NUMBER
+
+      - name: İmzayı doğrula
+        run: |
+          keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab | head -12 || true
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ayakizi-apk
-          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+          name: ayakizi-android
+          path: |
+            mobile/build/app/outputs/bundle/release/app-release.aab
+            mobile/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+
+  ios:
+    if: github.event_name == 'workflow_dispatch' && inputs.ios
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: ./tool/setup.sh
+      - name: iOS derlemesi (imzasız)
+        run: flutter build ios --release --no-codesign
 
   python:
     runs-on: ubuntu-latest

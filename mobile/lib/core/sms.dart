@@ -1,12 +1,17 @@
-import 'dart:io';
+import 'dart:convert';
 
-import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:xml/xml.dart' show XmlException;
+import 'package:xml/xml_events.dart';
 
 import 'classify.dart';
 import 'models.dart';
 
-/// Bu telefonun gelen kutusundaki SMS'leri okur (yalnızca Android).
-/// Telefonun kendisi elinizde olduğu için numara sahipliği zaten kanıtlıdır.
+/// Kullanıcının kendi seçtiği SMS yedeği dosyasını içe aktarır.
+///
+/// Uygulama telefonun SMS'lerine doğrudan erişmez (READ_SMS izni yoktur);
+/// kullanıcı Android'de "SMS Backup & Restore" ile aldığı XML yedeğini dosya
+/// seçiciyle verir. Dosya yalnızca bellekte işlenir, kopyalanmaz.
 
 class SmsMessage {
   SmsMessage(this.address, this.body, this.date);
@@ -15,31 +20,66 @@ class SmsMessage {
   final DateTime? date;
 }
 
-class SmsSource {
-  static const _channel = MethodChannel('ayakizi/sms');
+class SmsBackup {
+  SmsBackup({required this.phone, required this.fileName, required this.messages});
+  final String phone;
+  final String fileName;
+  final List<SmsMessage> messages;
+}
 
-  static bool get supported => Platform.isAndroid;
+class SmsBackupException implements Exception {
+  SmsBackupException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
 
-  Future<bool> requestPermission() async =>
-      await _channel.invokeMethod<bool>('requestPermission') ?? false;
+const String _received = '1';
 
-  Future<List<SmsMessage>> readInbox({DateTime? since}) async {
-    final list = await _channel.invokeListMethod<Map<Object?, Object?>>(
-          'readInbox',
-          {'sinceMillis': since?.millisecondsSinceEpoch ?? 0},
-        ) ??
-        const [];
-    return [
-      for (final m in list)
-        SmsMessage(
-          (m['address'] as String?) ?? '',
-          (m['body'] as String?) ?? '',
-          (m['date'] as num?) == null
-              ? null
-              : DateTime.fromMillisecondsSinceEpoch((m['date'] as num).toInt(), isUtc: true),
-        ),
-    ];
+/// "SMS Backup & Restore" XML biçimini akış halinde çözer; yalnızca gelen
+/// (type="1") mesajları döndürür.
+Future<List<SmsMessage>> parseSmsBackup(Stream<String> xmlText) async {
+  final out = <SmsMessage>[];
+  var sawRoot = false;
+  try {
+    await for (final events in xmlText.toXmlEvents()) {
+      for (final e in events) {
+        if (e is! XmlStartElementEvent) continue;
+        if (e.name == 'smses') sawRoot = true;
+        if (e.name != 'sms') continue;
+        final a = {for (final attr in e.attributes) attr.name: attr.value};
+        if ((a['type'] ?? _received) != _received) continue;
+        final ms = int.tryParse(a['date'] ?? '');
+        out.add(SmsMessage(
+          a['address'] ?? '',
+          a['body'] ?? '',
+          ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true),
+        ));
+      }
+    }
+  } on FormatException catch (e) {
+    throw SmsBackupException('Dosya okunamadı: ${e.message}');
+  } on XmlException catch (e) {
+    throw SmsBackupException('Geçerli bir SMS yedeği değil (${e.message}).');
   }
+  if (!sawRoot) {
+    throw SmsBackupException(
+        'Bu dosya "SMS Backup & Restore" yedeği gibi görünmüyor (<smses> bulunamadı).');
+  }
+  return out;
+}
+
+/// Dosya seçiciyi açar; kullanıcı vazgeçerse null döner.
+Future<SmsBackup?> pickSmsBackup(String phone) async {
+  final file = await FilePicker.pickFile(dialogTitle: 'SMS yedeğini seçin (.xml)');
+  if (file == null) return null;
+  if (!(file.name.toLowerCase().endsWith('.xml'))) {
+    throw SmsBackupException('Lütfen .xml uzantılı SMS yedeğini seçin.');
+  }
+  final messages = await parseSmsBackup(
+    file.readAsByteStream().cast<List<int>>().transform(const Utf8Decoder(allowMalformed: true)),
+  );
+  return SmsBackup(phone: phone, fileName: file.name, messages: messages);
 }
 
 final RegExp _code = RegExp(r'\b\d{4,8}\b');

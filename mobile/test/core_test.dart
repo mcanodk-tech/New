@@ -173,6 +173,36 @@ void main() {
     });
   });
 
+  group('sms backup parsing', () {
+    Stream<String> chunks(String s, int n) async* {
+      for (var i = 0; i < s.length; i += n) {
+        yield s.substring(i, i + n > s.length ? s.length : i + n);
+      }
+    }
+
+    test('parses received messages across chunk boundaries and unescapes entities', () async {
+      const xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+          '<smses count="3">\n'
+          '  <sms protocol="0" address="TINDER" date="1600000000000" type="1" '
+          'body="Your Tinder code is 123456 &amp; welcome&#10;!" read="1" />\n'
+          '  <sms address="+905551112233" date="1600000000000" type="2" body="giden" />\n'
+          '  <sms address="GETIR" date="1650000000000" type="1" body="Hesabınız silindi" />\n'
+          '</smses>';
+      final msgs = await parseSmsBackup(chunks(xml, 7));
+      expect(msgs.map((m) => m.address), ['TINDER', 'GETIR']);
+      expect(msgs.first.body, 'Your Tinder code is 123456 & welcome\n!');
+      expect(msgs.first.date, DateTime.fromMillisecondsSinceEpoch(1600000000000, isUtc: true));
+      expect(msgs.last.body, 'Hesabınız silindi');
+    });
+
+    test('rejects files that are not SMS backups', () async {
+      await expectLater(parseSmsBackup(Stream.value('<html><body/></html>')),
+          throwsA(isA<SmsBackupException>()));
+      await expectLater(parseSmsBackup(Stream.value('<smses><sms address=a /></smses>')),
+          throwsA(isA<SmsBackupException>()));
+    });
+  });
+
   group('otp', () {
     final cfg = SmtpConfig(user: 'me@gmail.com', password: 'x', host: 'h', port: 465);
 
@@ -261,7 +291,11 @@ void main() {
           ImapAccount(address: 'bad@x.com', password: 'p'),
         ],
         otpVerified: ['otp@x.com'],
-        smsMessages: [SmsMessage('GETIR', 'Getir hesabiniz silindi.', DateTime.utc(2022))],
+        smsBackups: [
+          SmsBackup(phone: '+90555', fileName: 'y.xml', messages: [
+            SmsMessage('GETIR', 'Getir hesabiniz silindi.', DateTime.utc(2022)),
+          ]),
+        ],
         hibpKey: 'k',
         hibp: hibp,
         log: (_) {},
