@@ -1,0 +1,4 @@
+ayakizi-rapor/
+__pycache__/
+*.egg-info/
+*.xml
