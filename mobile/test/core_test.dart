@@ -198,7 +198,8 @@ void main() {
     test('rejects files that are not SMS backups', () async {
       await expectLater(parseSmsBackup(Stream.value('<html><body/></html>')),
           throwsA(isA<SmsBackupException>()));
-      await expectLater(parseSmsBackup(Stream.value('<smses><sms address=a /></smses>')),
+      // Yanlışlıkla seçilen ZIP ya da düz metin dosyası.
+      await expectLater(parseSmsBackup(Stream.value('PK\u0003\u0004 binary junk')),
           throwsA(isA<SmsBackupException>()));
     });
   });

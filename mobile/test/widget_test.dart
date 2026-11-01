@@ -14,13 +14,22 @@ void main() {
     await tester.tap(find.text('Anladım, devam et'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Taramayı başlat'), findsOneWidget);
     expect(find.text('Henüz adres eklenmedi.'), findsOneWidget);
     expect(state.consented, isTrue);
 
     await tester.tap(find.text('Ekle'));
     await tester.pumpAndSettle();
     expect(find.text('E-posta adresi ekle'), findsOneWidget);
+  });
+
+  testWidgets('scan button is reachable at the bottom of home', (tester) async {
+    final state = AppState(store: MemoryKeyValueStore());
+    await state.load();
+    await state.acceptConsent();
+    await tester.pumpWidget(AyakiziApp(state: state));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Taramayı başlat'), 200);
+    expect(find.text('Taramayı başlat'), findsOneWidget);
   });
 
   test('settings persist through the store; SMS backups do not', () async {
