@@ -11,6 +11,7 @@ import getpass
 import imaplib
 import os
 import sys
+import xml.etree.ElementTree as ET
 from datetime import date
 from pathlib import Path
 
@@ -20,18 +21,31 @@ from .inbox import guess_imap_host, scan_mailbox
 from .models import Event, build_inventory
 from .report import write_reports
 from .sms import scan_sms_backup
+from .verify import SmtpConfig, VerificationError, verify_email
 
 
 def _log(msg: str) -> None:
     print(msg, file=sys.stderr)
 
 
+def _parse_sms_arg(value: str, default_phone: str | None) -> tuple[str, str]:
+    """`yedek.xml=+90555...` ya da `yedek.xml` (+ --phone)."""
+    path, sep, phone = value.rpartition("=")
+    if sep and phone.strip().lstrip("+").isdigit():
+        return path, phone.strip()
+    if not default_phone:
+        raise ValueError(f"{value}: numarayı 'dosya.xml=+90555...' biçiminde ya da --phone ile verin.")
+    return value, default_phone
+
+
 def cmd_scan(args: argparse.Namespace) -> int:
-    if not args.imap and not args.sms:
-        _log("En az bir --imap adresi veya --sms yedeği verin.")
+    if not args.imap and not args.sms and not args.verify_email:
+        _log("En az bir --imap, --verify-email adresi veya --sms yedeği verin.")
         return 2
-    if args.sms and not args.phone:
-        _log("--sms kullanırken kendi numaranızı --phone ile belirtin.")
+    try:
+        sms_inputs = [_parse_sms_arg(v, args.phone) for v in args.sms]
+    except ValueError as e:
+        _log(str(e))
         return 2
     if args.imap_host and len(args.imap) > 1:
         _log("--imap-host yalnızca tek bir --imap adresiyle kullanılabilir.")
@@ -61,10 +75,37 @@ def cmd_scan(args: argparse.Namespace) -> int:
         scanned.append(address)
         events.extend(evs)
 
-    for path in args.sms:
-        _log(f"[sms] {path}")
-        events.extend(scan_sms_backup(path, args.phone))
-        scanned.append(f"{args.phone} (SMS yedeği)")
+    if args.verify_email:
+        try:
+            smtp = SmtpConfig.from_env()
+        except VerificationError as e:
+            _log(f"! {e}")
+            smtp = None
+        for address in args.verify_email if smtp else []:
+            address = address.strip().lower()
+            if address in verified_emails:
+                continue
+            _log(f"[otp] {address} adresine kod gönderiliyor ({smtp.host})")
+            try:
+                ok = verify_email(address, smtp)
+            except VerificationError as e:
+                _log(f"  ! {e}")
+                continue
+            if ok:
+                _log("  doğrulandı")
+                verified_emails.append(address)
+                scanned.append(f"{address} (OTP ile doğrulandı)")
+            else:
+                _log("  ! kod doğrulanamadı; bu adres atlandı")
+
+    for path, phone in sms_inputs:
+        _log(f"[sms] {path} ({phone})")
+        try:
+            events.extend(scan_sms_backup(path, phone))
+        except (OSError, ET.ParseError) as e:
+            _log(f"  ! okunamadı: {e}")
+            continue
+        scanned.append(f"{phone} (SMS yedeği)")
 
     breaches: list[dict] = []
     if args.hibp:
@@ -116,9 +157,13 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--imap-host", help="IMAP sunucusu (varsayılan: adresten tahmin edilir)")
     s.add_argument("--folder", action="append", help="yalnızca bu IMAP klasörlerini tara")
     s.add_argument("--since", help="YYYY-AA-GG tarihinden sonraki mesajlar")
-    s.add_argument("--sms", action="append", default=[], metavar="XML",
-                   help="Android 'SMS Backup & Restore' XML yedeği")
-    s.add_argument("--phone", help="SMS yedeğinin ait olduğu kendi numaranız")
+    s.add_argument("--verify-email", action="append", default=[], metavar="ADRES",
+                   help="IMAP erişimi olmayan kendi adresiniz: OTP gönderilir, doğrulanırsa "
+                        "sızıntı kontrolüne dahil edilir (AYAKIZI_SMTP_USER/PASSWORD)")
+    s.add_argument("--sms", action="append", default=[], metavar="XML[=NUMARA]",
+                   help="Android 'SMS Backup & Restore' XML yedeği; birden çok numara için "
+                        "yedek.xml=+90555... biçimi")
+    s.add_argument("--phone", help="numarası belirtilmeyen SMS yedeklerinin ait olduğu numara")
     s.add_argument("--hibp", action="store_true",
                    help="doğrulanmış adresleri Have I Been Pwned'de kontrol et (HIBP_API_KEY)")
     s.add_argument("--out", default="ayakizi-rapor", help="rapor klasörü")

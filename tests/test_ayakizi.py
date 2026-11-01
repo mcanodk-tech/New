@@ -181,5 +181,68 @@ class ReportTests(unittest.TestCase):
                              "active")
 
 
+class VerifyTests(unittest.TestCase):
+    def setUp(self):
+        from ayakizi import verify
+        self.v = verify
+        self.cfg = verify.SmtpConfig("me@gmail.com", "pw", "smtp.gmail.com", 465)
+        self.sent = {}
+
+    def _sender(self, cfg, to, code):
+        self.sent.update(to=to, code=code)
+
+    def test_correct_code(self):
+        ok = self.v.verify_email("a@x.com", self.cfg, prompt=lambda _: self.sent["code"],
+                                 sender=self._sender)
+        self.assertTrue(ok)
+        self.assertEqual(self.sent["to"], "a@x.com")
+        self.assertRegex(self.sent["code"], r"^\d{6}$")
+
+    def test_wrong_code_limited_attempts(self):
+        calls = []
+        ok = self.v.verify_email("a@x.com", self.cfg,
+                                 prompt=lambda _: calls.append(1) or "000000x",
+                                 sender=self._sender)
+        self.assertFalse(ok)
+        self.assertEqual(len(calls), self.v.MAX_ATTEMPTS)
+
+    def test_expired_code(self):
+        t = iter([0, self.v.CODE_TTL_SECONDS + 1])
+        ok = self.v.verify_email("a@x.com", self.cfg, prompt=lambda _: self.sent["code"],
+                                 sender=self._sender, clock=lambda: next(t))
+        self.assertFalse(ok)
+
+    def test_config_from_env(self):
+        cfg = self.v.SmtpConfig.from_env({"AYAKIZI_SMTP_USER": "me@outlook.com",
+                                          "AYAKIZI_SMTP_PASSWORD": "x"})
+        self.assertEqual((cfg.host, cfg.port), ("smtp.office365.com", 587))
+        with self.assertRaises(self.v.VerificationError):
+            self.v.SmtpConfig.from_env({})
+
+
+class CliTests(unittest.TestCase):
+    def test_parse_sms_arg(self):
+        from ayakizi.cli import _parse_sms_arg
+        self.assertEqual(_parse_sms_arg("a.xml=+905551112233", None), ("a.xml", "+905551112233"))
+        self.assertEqual(_parse_sms_arg("a.xml", "+90"), ("a.xml", "+90"))
+        with self.assertRaises(ValueError):
+            _parse_sms_arg("a.xml", None)
+
+    def test_hibp_only_for_verified_addresses(self):
+        from ayakizi import cli
+        checked = []
+        env = {"AYAKIZI_SMTP_USER": "me@gmail.com", "AYAKIZI_SMTP_PASSWORD": "x",
+               "HIBP_API_KEY": "k"}
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.dict(cli.os.environ, env), \
+                mock.patch.object(cli, "verify_email", lambda addr, cfg: addr == "ok@x.com"), \
+                mock.patch.object(cli, "breached_account",
+                                  lambda addr, key: checked.append(addr) or []):
+            rc = cli.main(["scan", "--verify-email", "ok@x.com", "--verify-email", "bad@x.com",
+                           "--hibp", "--out", d])
+        self.assertEqual(rc, 0)
+        self.assertEqual(checked, ["ok@x.com"])
+
+
 if __name__ == "__main__":
     unittest.main()

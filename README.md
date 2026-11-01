@@ -57,6 +57,32 @@ ayakizi scan --imap ben@firma.com.tr --imap-host mail.firma.com.tr --since 2018-
 ayakizi password
 ```
 
+### Elinizde OTP'si olan adresler ve numaralar
+
+**E-posta (IMAP erişimi olmayan adresler):** `--verify-email` adrese 6 haneli bir
+kod gönderir. Kod doğru girilirse (10 dakika, 3 deneme) adres doğrulanmış sayılır
+ve `--hibp` ile sızıntı kontrolüne dahil edilir. Kod sizin SMTP hesabınızdan gider:
+
+```bash
+export AYAKIZI_SMTP_USER=ben@gmail.com AYAKIZI_SMTP_PASSWORD=<uygulama-şifresi>
+export HIBP_API_KEY=...
+ayakizi scan --verify-email ben@firma.com --verify-email takma-ad@ornek.com --hibp
+```
+
+IMAP girişi yapabildiğiniz adreslerde `--imap` tercih edin: hem doğrulama sayılır
+hem de kutudaki kayıt/silme mesajlarından hesap envanteri çıkarılır. OTP ile
+doğrulanan adreste ise yalnızca sızıntı kontrolü yapılır.
+
+**Telefon:** Numaraya gelen SMS'ler zaten sizin cihazınızda olduğundan, kanıt
+olarak SMS yedeği kullanılır. Birden çok numara için:
+
+```bash
+ayakizi scan --sms telefon1.xml=+905551112233 --sms telefon2.xml=+905554445566
+```
+
+Have I Been Pwned API'si telefon numarasıyla sorgu desteklemez; numaralar için
+envanter SMS yedeğinden çıkarılır.
+
 Çıktı `ayakizi-rapor/rapor.html` (görsel rapor + KVKK/GDPR silme talebi
 şablonları) ve `ayakizi-rapor/rapor.json` dosyalarıdır.
 
