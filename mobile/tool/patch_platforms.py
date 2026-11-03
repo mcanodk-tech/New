@@ -17,11 +17,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# Gradle Kotlin betiğinde `java` adı JavaPluginExtension'a çözüldüğü için tam
+# nitelikli `java.util.Properties` çalışmaz; import dosyanın en başında olmalı.
+IMPORTS = 'import java.io.FileInputStream\nimport java.util.Properties\n\n'
+
 SIGNING_LOAD = '''
-val keystoreProperties = java.util.Properties()
+val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 if (keystorePropertiesFile.exists()) {
-    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 '''
 
@@ -62,6 +66,7 @@ def patch_android() -> None:
         fail("build.gradle.kts içinde sürüm imzalama satırı bulunamadı")
     text = text.replace("\nandroid {", SIGNING_LOAD + "\nandroid {" + SIGNING_CONFIG, 1)
     text = text.replace(DEBUG_SIGNING, RELEASE_SIGNING, 1)
+    text = IMPORTS + text
     path.write_text(text, encoding="utf-8")
     print("android: imzalama yapılandırması eklendi")
 
